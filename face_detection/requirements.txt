@@ -1,0 +1,9 @@
+opencv-contrib-python>=4.5.5
+numpy>=1.19
+matplotlib>=3.0
+
+# Audio transcription dependencies
+openai-whisper>=20230314
+pyaudio>=0.2.13
+sounddevice>=0.4.6
+scipy>=1.10.0
