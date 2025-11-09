@@ -90,7 +90,36 @@ python save_transcription.py --format srt --output video.srt
 See [QUICKSTART_TRANSCRIPTION.md](QUICKSTART_TRANSCRIPTION.md) for detailed transcription guide.
 ```
 
-Notes
+### ReMind Dementia Assistant (NEW!)
+
+**🧠 Complete memory assistance system for dementia patients**
+
+```bash
+# Test the database system
+python test_database.py
+
+# Run the dementia assistant
+python remind_assistant.py
+
+# The assistant will:
+# ✓ Recognize faces and show who they are
+# ✓ Transcribe conversations in real-time
+# ✓ Remember when you last met
+# ✓ Show relevant context and topics
+# ✓ Learn new people from conversation
+# ✓ Store everything in local database
+```
+
+**Features:**
+- **Smart Memory:** Remembers people and past conversations
+- **Auto-Learning:** Extracts names and relationships from speech
+- **Context Display:** Shows "Last seen", topics discussed, important notes
+- **Privacy-First:** All data stored locally in SQLite
+- **Production-Ready:** Complete database with people, encounters, topics
+
+See [../DEMENTIA_ASSISTANT_GUIDE.md](../DEMENTIA_ASSISTANT_GUIDE.md) for complete documentation.
+
+## Notes
 - The scripts use OpenCV's bundled Haar cascade at `cv2.data.haarcascades` so you don't need to download XML files manually.
 - If your webcam index is not `0`, pass a different index by editing `detect_camera.py` or set `cv2.VideoCapture(1)` etc.
 

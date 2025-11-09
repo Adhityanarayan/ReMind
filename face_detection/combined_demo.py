@@ -144,7 +144,7 @@ class CombinedSystem:
 
     def process_video(self):
         """Video processing loop"""
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
 
         if not cap.isOpened():
             print("Error: Cannot open camera")
@@ -311,8 +311,18 @@ def main():
         default="labels.json",
         help="Path to labels JSON"
     )
+    parser.add_argument(
+        "--device",
+        type=int,
+        default=None,
+        help="Audio input device ID (use --list-devices to see options)"
+    )
 
     args = parser.parse_args()
+
+    # Set audio device if specified
+    if args.device is not None:
+        sd.default.device = args.device
 
     system = CombinedSystem(
         whisper_model=args.whisper_model,
