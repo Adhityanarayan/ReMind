@@ -4,6 +4,12 @@ ReMind V2 - Memory Assistant for Dementia Patients
 Enhanced with proper face recognition and enrollment workflow
 """
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import cv2
 import whisper
 import sounddevice as sd
@@ -14,7 +20,6 @@ import json
 import os
 import argparse
 from datetime import datetime
-from pathlib import Path
 from typing import Optional, Dict, Any
 
 # Import our database modules

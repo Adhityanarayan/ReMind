@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReMind - Auto-Learning Memory Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            padding: 20px 0;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-section {
+            position: relative;
+        }
+
+        .video-section h2 {
+            margin-bottom: 10px;
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        #videoFeed {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-panel {
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+
+        .info-panel h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+            font-size: 1.3em;
+        }
+
+        .person-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .person-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .person-card .relationship {
+            font-size: 1em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .person-card .confidence {
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .learning-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .learning-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.3);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: rgba(255, 255, 255, 0.9);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .enroll-button {
+            background: white;
+            color: #f5576c;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .enroll-button:hover {
+            background: #f0f0f0;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-section h4 {
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+        }
+
+        .info-item strong {
+            color: #667eea;
+            display: inline-block;
+            min-width: 100px;
+        }
+
+        .important-info {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .important-info h4 {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .important-info p {
+            color: #856404;
+        }
+
+        .transcript-section {
+            grid-column: 1 / -1;
+            max-height: 200px;
+        }
+
+        .transcript-section h2 {
+            margin-bottom: 10px;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .transcript-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .transcript-entry {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border-left: 4px solid #2196F3;
+            font-size: 0.9em;
+        }
+
+        .transcript-entry .time {
+            color: #666;
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+
+        .transcript-entry .speaker {
+            font-weight: bold;
+            color: #2196F3;
+            margin-right: 8px;
+        }
+
+        .no-person {
+            text-align: center;
+            padding: 40px 15px;
+            color: #999;
+        }
+
+        .no-person h3 {
+            font-size: 1.3em;
+            margin-bottom: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .stat-box .label {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+
+        .topics-list {
+            list-style: none;
+        }
+
+        .topics-list li {
+            background: #e7f3ff;
+            padding: 8px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border-left: 4px solid #2196F3;
+            font-size: 0.85em;
+        }
+
+        .topics-list li strong {
+            color: #2196F3;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        .info-panel::-webkit-scrollbar,
+        .transcript-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track,
+        .transcript-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb,
+        .transcript-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .transcript-section {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 ReMind</h1>
+            <p>Auto-Learning Memory Assistant with Speech Recognition</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Video Feed Section -->
+            <div class="card video-section">
+                <h2>📹 Live Camera Feed</h2>
+                <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Video Feed">
+            </div>
+
+            <!-- Person Information Panel -->
+            <div class="card info-panel">
+                <h2>👤 Person Information</h2>
+                <div id="personInfo">
+                    <div class="no-person loading">
+                        <h3>Initializing...</h3>
+                        <p>System starting up...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript Section -->
+            <div class="card transcript-section">
+                <h2>💬 Live Transcript</h2>
+                <div class="transcript-list" id="transcriptList">
+                    <div class="no-person">
+                        <p>Listening for conversation...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update person information every second
+        function updatePersonInfo() {
+            fetch('/api/current_person')
+                .then(response => response.json())
+                .then(data => {
+                    const personInfoDiv = document.getElementById('personInfo');
+
+                    if (data.status === 'learning') {
+                        // Show learning status
+                        const candidate = data.candidate;
+                        const progress = (data.samples_collected / data.samples_needed) * 100;
+                        const canEnroll = data.samples_collected >= data.samples_needed;
+
+                        personInfoDiv.innerHTML = `
+                            <div class="learning-card">
+                                <h3>🎓 Learning New Person</h3>
+                                <p><strong>Name detected:</strong> ${candidate.name}</p>
+                                <p><strong>Relationship:</strong> ${candidate.relationship || 'Unknown'}</p>
+                                <p><strong>Confidence:</strong> ${(candidate.confidence * 100).toFixed(0)}%</p>
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                                <p style="margin-top: 8px; font-size: 0.9em;">
+                                    Face samples: ${data.samples_collected}/${data.samples_needed}
+                                </p>
+
+                                ${canEnroll ? `
+                                    <button class="enroll-button" onclick="enrollPerson()">
+                                        ✨ Enroll ${candidate.name}
+                                    </button>
+                                ` : `
+                                    <p style="margin-top: 10px; font-size: 0.85em; opacity: 0.9;">
+                                        Collecting face samples... Keep looking at camera
+                                    </p>
+                                `}
+                            </div>
+                        `;
+                    } else if (data.status === 'no_person') {
+                        personInfoDiv.innerHTML = `
+                            <div class="no-person">
+                                <h3>No Person Detected</h3>
+                                <p>Waiting for someone to appear...<br>
+                                <small>System will learn automatically when you introduce yourself</small></p>
+                            </div>
+                        `;
+                    } else if (data.status === 'recognized') {
+                        const person = data.person;
+                        const encounters = data.encounters;
+
+                        let html = `
+                            <div class="person-card">
+                                <h3>${person.name}</h3>
+                                <div class="relationship">${person.relationship || 'Unknown Relationship'}</div>
+                                <div class="confidence">Match: ${person.match_confidence?.toFixed(1)}%</div>
+                            </div>
+                        `;
+
+                        // Important Information
+                        if (person.important_info) {
+                            html += `
+                                <div class="important-info">
+                                    <h4>⚠️ Important Information</h4>
+                                    <p>${person.important_info}</p>
+                                </div>
+                            `;
+                        }
+
+                        // Contact Information
+                        if (person.phone || person.email) {
+                            html += `<div class="info-section"><h4>📞 Contact Information</h4>`;
+                            if (person.phone) {
+                                html += `<div class="info-item"><strong>Phone:</strong> ${person.phone}</div>`;
+                            }
+                            if (person.email) {
+                                html += `<div class="info-item"><strong>Email:</strong> ${person.email}</div>`;
+                            }
+                            html += `</div>`;
+                        }
+
+                        // Statistics
+                        html += `
+                            <div class="info-section">
+                                <h4>📊 Visit Statistics</h4>
+                                <div class="stats-grid">
+                                    <div class="stat-box">
+                                        <div class="number">${encounters.total_visits || 0}</div>
+                                        <div class="label">Total Visits</div>
+                                    </div>
+                                    <div class="stat-box">
+                                        <div class="number">${encounters.last_seen ? '✓' : '-'}</div>
+                                        <div class="label">${encounters.last_seen || 'First visit'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        // Recent Topics
+                        if (encounters.common_topics && encounters.common_topics.length > 0) {
+                            html += `
+                                <div class="info-section">
+                                    <h4>💭 Recent Discussion Topics</h4>
+                                    <ul class="topics-list">
+                            `;
+                            encounters.common_topics.forEach(topic => {
+                                html += `
+                                    <li>
+                                        <strong>${topic.topic}</strong>
+                                        ${topic.category ? `<br><small>Category: ${topic.category}</small>` : ''}
+                                        <br><small>Mentioned ${topic.frequency} time(s)</small>
+                                    </li>
+                                `;
+                            });
+                            html += `</ul></div>`;
+                        }
+
+                        // Notes
+                        if (person.notes) {
+                            html += `
+                                <div class="info-section">
+                                    <h4>📝 Notes</h4>
+                                    <div class="info-item">${person.notes}</div>
+                                </div>
+                            `;
+                        }
+
+                        personInfoDiv.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching person info:', error);
+                });
+        }
+
+        // Update transcript
+        function updateTranscript() {
+            fetch('/api/transcript')
+                .then(response => response.json())
+                .then(data => {
+                    const transcriptDiv = document.getElementById('transcriptList');
+
+                    if (data.transcript && data.transcript.length > 0) {
+                        let html = '';
+                        data.transcript.forEach(entry => {
+                            html += `
+                                <div class="transcript-entry">
+                                    <span class="time">${entry.time}</span>
+                                    <span class="speaker">${entry.speaker}:</span>
+                                    <span>${entry.text}</span>
+                                </div>
+                            `;
+                        });
+                        transcriptDiv.innerHTML = html;
+
+                        // Auto-scroll to bottom
+                        transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+                    } else {
+                        transcriptDiv.innerHTML = `
+                            <div class="no-person">
+                                <p>🎤 Listening for conversation...</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching transcript:', error);
+                });
+        }
+
+        // Enroll person
+        function enrollPerson() {
+            fetch('/api/auto_enroll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Successfully enrolled ${data.name}!`);
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+            })
+            .catch(error => {
+                alert('Error enrolling person: ' + error);
+            });
+        }
+
+        // Update every second
+        setInterval(updatePersonInfo, 1000);
+        setInterval(updateTranscript, 1000);
+
+        // Initial updates
+        updatePersonInfo();
+        updateTranscript();
+    </script>
+</body>
+</html>

@@ -4,6 +4,12 @@ Quick Face Enrollment Script
 Simple command-line tool to enroll people into ReMind database
 """
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import cv2
 import argparse
 from database import FaceRecognitionManager
