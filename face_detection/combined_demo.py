@@ -144,7 +144,7 @@ class CombinedSystem:
 
     def process_video(self):
         """Video processing loop"""
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
 
         if not cap.isOpened():
             print("Error: Cannot open camera")

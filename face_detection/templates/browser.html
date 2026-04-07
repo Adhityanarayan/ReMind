@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReMind (Browser Capture)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #0b1020;
+      color: #e8ecff;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    header { display:flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+    header h1 { font-size: 22px; letter-spacing: 0.2px; }
+    header .hint { opacity: 0.8; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { font-size: 15px; margin-bottom: 10px; opacity: 0.95; }
+
+    .videoWrap { position: relative; }
+    video {
+      width: 100%;
+      border-radius: 12px;
+      background: #000;
+    }
+    canvas { display:none; }
+
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display:block; font-size: 12px; opacity: 0.85; margin-bottom: 6px; }
+    input, textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #e8ecff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+
+    .btnbar { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .primary { background: #6c7bff; color: #0b1020; }
+    .secondary { background: rgba(255,255,255,0.14); color: #e8ecff; }
+    .danger { background: rgba(255,90,110,0.25); color: #ffd7dd; }
+    .disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .pill {
+      display:inline-flex; align-items:center; gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-weight: 800;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .muted { opacity: 0.75; font-size: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .box {
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 92px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .kvs { display:grid; grid-template-columns: 130px 1fr; gap: 8px; font-size: 13px; }
+    .kvs .k { opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ReMind (Browser Capture)</h1>
+      <div class="hint">Camera + mic are captured in your browser, and sent to Flask for recognition/transcription.</div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Camera</h2>
+        <div class="pill" id="camPill">Not started</div>
+        <div class="videoWrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="btnbar">
+          <button class="primary" id="btnStart">Start camera+mic</button>
+          <button class="secondary disabled" id="btnStop" disabled>Stop</button>
+        </div>
+        <div class="muted" style="margin-top:10px;">
+          Tips: If you’re not on `https://` your browser may require `http://localhost` only for mic access.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recognition + Transcript</h2>
+        <div class="pill" id="statusPill">Idle</div>
+
+        <div style="margin-bottom:10px;">
+          <div class="muted">Recognized person</div>
+          <div class="box" id="personBox">—</div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <div class="muted">Live transcript</div>
+          <div class="box mono" id="transcriptBox">—</div>
+        </div>
+
+        <div class="btnbar">
+          <button class="secondary disabled" id="btnToggleRecognition" disabled>Start recognition</button>
+          <button class="secondary disabled" id="btnToggleTranscript" disabled>Start transcript</button>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: 1 / -1;">
+        <h2>Enroll New Person (from browser snapshots)</h2>
+        <div class="pill" id="enrollPill">Idle</div>
+        <div class="muted" style="margin-bottom:10px;">This stores new faces in `remind.db` by sending snapshots from your browser.</div>
+
+        <div class="row">
+          <div>
+            <label>Name *</label>
+            <input id="enrollName" placeholder="e.g. Sarah Johnson" />
+          </div>
+          <div>
+            <label>Relationship</label>
+            <input id="enrollRelationship" placeholder="e.g. Daughter, Nurse" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Phone</label>
+            <input id="enrollPhone" placeholder="e.g. 555-1234" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="enrollEmail" placeholder="e.g. name@email.com" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label>Important info</label>
+          <textarea id="enrollImportant" placeholder="e.g. Brings medication on Tuesdays"></textarea>
+        </div>
+        <div style="margin-top:10px;">
+          <label>Notes</label>
+          <textarea id="enrollNotes" placeholder="Any extra notes"></textarea>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Target samples (10–40)</label>
+            <input id="enrollTarget" type="number" min="10" max="40" value="15" />
+          </div>
+          <div>
+            <label>Progress</label>
+            <div class="box" id="enrollProgress">0/0</div>
+          </div>
+        </div>
+
+        <div class="btnbar">
+          <button class="primary disabled" id="btnEnrollStart" disabled>Start enrollment</button>
+          <button class="secondary disabled" id="btnEnrollCapture" disabled>Capture snapshot</button>
+          <button class="secondary disabled" id="btnEnrollComplete" disabled>Save person</button>
+          <button class="danger disabled" id="btnEnrollCancel" disabled>Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const camPill = document.getElementById('camPill');
+    const statusPill = document.getElementById('statusPill');
+    const personBox = document.getElementById('personBox');
+    const transcriptBox = document.getElementById('transcriptBox');
+    const enrollPill = document.getElementById('enrollPill');
+    const enrollProgress = document.getElementById('enrollProgress');
+
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnToggleRecognition = document.getElementById('btnToggleRecognition');
+    const btnToggleTranscript = document.getElementById('btnToggleTranscript');
+
+    const btnEnrollStart = document.getElementById('btnEnrollStart');
+    const btnEnrollCapture = document.getElementById('btnEnrollCapture');
+    const btnEnrollComplete = document.getElementById('btnEnrollComplete');
+    const btnEnrollCancel = document.getElementById('btnEnrollCancel');
+
+    let mediaStream = null;
+    let recognitionTimer = null;
+    let transcriptTimer = null;
+    let enrollAutoCaptureTimer = null;
+
+    // Audio capture (ScriptProcessor for compatibility)
+    let audioCtx = null;
+    let processor = null;
+    let audioBuffer = [];
+    let recording = false;
+    let lastTranscriptText = '';
+
+    function setEnabled(btn, enabled) {
+      btn.disabled = !enabled;
+      btn.classList.toggle('disabled', !enabled);
+    }
+
+    async function startCameraMic() {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      video.srcObject = mediaStream;
+      camPill.textContent = 'Camera+mic running';
+
+      setEnabled(btnStart, false);
+      setEnabled(btnStop, true);
+      setEnabled(btnToggleRecognition, true);
+      setEnabled(btnToggleTranscript, true);
+      setEnabled(btnEnrollStart, true);
+      setEnabled(btnEnrollCancel, true);
+
+      // set up audio pipeline (no playback)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(mediaStream);
+      processor = audioCtx.createScriptProcessor(4096, 1, 1);
+      source.connect(processor);
+      processor.connect(audioCtx.destination);
+
+      processor.onaudioprocess = (e) => {
+        if (!recording) return;
+        const input = e.inputBuffer.getChannelData(0);
+        audioBuffer.push(new Float32Array(input));
+      };
+    }
+
+    function stopAll() {
+      if (recognitionTimer) { clearInterval(recognitionTimer); recognitionTimer = null; }
+      if (transcriptTimer) { clearInterval(transcriptTimer); transcriptTimer = null; }
+      if (enrollAutoCaptureTimer) { clearInterval(enrollAutoCaptureTimer); enrollAutoCaptureTimer = null; }
+
+      recording = false;
+      audioBuffer = [];
+
+      if (processor) { processor.disconnect(); processor = null; }
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+
+      camPill.textContent = 'Stopped';
+      statusPill.textContent = 'Idle';
+      setEnabled(btnStart, true);
+      setEnabled(btnStop, false);
+      setEnabled(btnToggleRecognition, false);
+      setEnabled(btnToggleTranscript, false);
+      setEnabled(btnEnrollStart, false);
+      setEnabled(btnEnrollCapture, false);
+      setEnabled(btnEnrollComplete, false);
+      setEnabled(btnEnrollCancel, false);
+    }
+
+    function captureJpegBlob(quality = 0.85) {
+      const w = video.videoWidth || 640;
+      const h = video.videoHeight || 480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, w, h);
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    }
+
+    async function recognizeOnce() {
+      const blob = await captureJpegBlob(0.75);
+      const fd = new FormData();
+      fd.append('frame', blob, 'frame.jpg');
+      const res = await fetch('/api/recognize_frame', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (!data.success) {
+        statusPill.textContent = 'Error';
+        personBox.textContent = data.error || 'recognition failed';
+        return;
+      }
+
+      if (data.status === 'recognized') {
+        statusPill.textContent = 'Recognized';
+        const p = data.person || {};
+        personBox.textContent = `${p.name || 'Unknown'}\n${p.relationship || ''}\nMatch: ${(p.match_confidence || 0).toFixed(1)}%`;
+      } else if (data.status === 'unknown') {
+        statusPill.textContent = 'Unknown face';
+        personBox.textContent = 'Unknown person (not enrolled)';
+      } else {
+        statusPill.textContent = 'No face';
+        personBox.textContent = 'No face detected';
+      }
+    }
+
+    // WAV encoding helpers (16k mono PCM)
+    function flattenFloat32(chunks) {
+      let len = 0;
+      for (const c of chunks) len += c.length;
+      const out = new Float32Array(len);
+      let off = 0;
+      for (const c of chunks) { out.set(c, off); off += c.length; }
+      return out;
+    }
+
+    function downsampleBuffer(buffer, inRate, outRate) {
+      if (outRate === inRate) return buffer;
+      const ratio = inRate / outRate;
+      const newLen = Math.round(buffer.length / ratio);
+      const result = new Float32Array(newLen);
+      let offsetResult = 0;
+      let offsetBuffer = 0;
+      while (offsetResult < result.length) {
+        const nextOffsetBuffer = Math.round((offsetResult + 1) * ratio);
+        let accum = 0, count = 0;
+        for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+          accum += buffer[i];
+          count++;
+        }
+        result[offsetResult] = count ? (accum / count) : 0;
+        offsetResult++;
+        offsetBuffer = nextOffsetBuffer;
+      }
+      return result;
+    }
+
+    function encodeWav(float32, sampleRate) {
+      const buffer = new ArrayBuffer(44 + float32.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+
+      let offset = 0;
+      writeString(offset, 'RIFF'); offset += 4;
+      view.setUint32(offset, 36 + float32.length * 2, true); offset += 4;
+      writeString(offset, 'WAVE'); offset += 4;
+      writeString(offset, 'fmt '); offset += 4;
+      view.setUint32(offset, 16, true); offset += 4; // PCM
+      view.setUint16(offset, 1, true); offset += 2;  // linear PCM
+      view.setUint16(offset, 1, true); offset += 2;  // mono
+      view.setUint32(offset, sampleRate, true); offset += 4;
+      view.setUint32(offset, sampleRate * 2, true); offset += 4;
+      view.setUint16(offset, 2, true); offset += 2;
+      view.setUint16(offset, 16, true); offset += 2;
+      writeString(offset, 'data'); offset += 4;
+      view.setUint32(offset, float32.length * 2, true); offset += 4;
+
+      // PCM samples
+      for (let i = 0; i < float32.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, float32[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    async function transcribeOnce() {
+      if (!audioCtx) return;
+      // record ~3.5 seconds of audio buffer, then send
+      recording = true;
+      audioBuffer = [];
+      await new Promise(r => setTimeout(r, 3500));
+      recording = false;
+
+      const raw = flattenFloat32(audioBuffer);
+      const down = downsampleBuffer(raw, audioCtx.sampleRate, 16000);
+      const wav = encodeWav(down, 16000);
+
+      const fd = new FormData();
+      fd.append('audio', wav, 'chunk.wav');
+      const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!data.success) {
+        transcriptBox.textContent = data.error || 'transcription failed';
+        return;
+      }
+
+      const t = (data.text || '').trim();
+      if (t && t !== lastTranscriptText) lastTranscriptText = t;
+
+      const hist = data.history || [];
+      if (hist.length > 0) {
+        transcriptBox.textContent = hist.map(h => h.text).join('\n');
+      } else if (t) {
+        transcriptBox.textContent = t;
+      }
+
+      // Auto-fill enrollment fields from server-side suggestion/meta
+      if (data.enroll_meta) {
+        const meta = data.enroll_meta;
+        const nameEl = document.getElementById('enrollName');
+        const relEl = document.getElementById('enrollRelationship');
+        if (meta.name && !nameEl.value) nameEl.value = meta.name;
+        if (meta.relationship && !relEl.value) relEl.value = meta.relationship;
+      }
+    }
+
+    async function enrollStart() {
+      const payload = {
+        name: document.getElementById('enrollName').value,
+        relationship: document.getElementById('enrollRelationship').value,
+        phone: document.getElementById('enrollPhone').value,
+        email: document.getElementById('enrollEmail').value,
+        important_info: document.getElementById('enrollImportant').value,
+        notes: document.getElementById('enrollNotes').value,
+        target_samples: parseInt(document.getElementById('enrollTarget').value || '15', 10),
+      };
+      const res = await fetch('/api/enroll/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'failed to start enrollment');
+      enrollPill.textContent = 'Enrollment active';
+      setEnabled(btnEnrollCapture, true);
+      setEnabled(btnEnrollComplete, true);
+
+      // Auto-start transcript on enrollment (for auto-fill)
+      if (!transcriptTimer) {
+        await transcribeOnce();
+        transcriptTimer = setInterval(transcribeOnce, 4200);
+        btnToggleTranscript.textContent = 'Stop transcript';
+      }
+
+      // Auto-capture snapshots until ready (lightweight UX)
+      if (!enrollAutoCaptureTimer) {
+        enrollAutoCaptureTimer = setInterval(async () => {
+          try {
+            await enrollCapture();
+            if ((enrollProgress.textContent || '').includes('(ready)')) {
+              clearInterval(enrollAutoCaptureTimer);
+              enrollAutoCaptureTimer = null;
+            }
+          } catch (_) {}
+        }, 900);
+      }
+    }
+
+    async function enrollCapture() {
+      const blob = await captureJpegBlob(0.85);
+      const fd = new FormData();
+      fd.append('frame', blob, 'frame.jpg');
+      const res = await fetch('/api/enroll/add_frame', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'failed to add frame');
+      const captured = data.samples_captured || 0;
+      const target = data.target_samples || 0;
+      enrollProgress.textContent = `${captured}/${target}` + (data.ready ? ' (ready)' : '');
+    }
+
+    async function enrollComplete() {
+      const res = await fetch('/api/enroll/complete', { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'failed to save');
+      enrollPill.textContent = 'Saved';
+      enrollProgress.textContent = 'Done';
+      alert(`Enrolled. Person ID: ${data.person_id}`);
+      setEnabled(btnEnrollCapture, false);
+      setEnabled(btnEnrollComplete, false);
+      if (enrollAutoCaptureTimer) {
+        clearInterval(enrollAutoCaptureTimer);
+        enrollAutoCaptureTimer = null;
+      }
+    }
+
+    async function enrollCancel() {
+      await fetch('/api/enroll/cancel', { method: 'POST' });
+      enrollPill.textContent = 'Idle';
+      enrollProgress.textContent = '0/0';
+      setEnabled(btnEnrollCapture, false);
+      setEnabled(btnEnrollComplete, false);
+      if (enrollAutoCaptureTimer) {
+        clearInterval(enrollAutoCaptureTimer);
+        enrollAutoCaptureTimer = null;
+      }
+    }
+
+    btnStart.addEventListener('click', async () => {
+      try {
+        await startCameraMic();
+      } catch (e) {
+        camPill.textContent = 'Permission denied / error';
+        alert(e.message || String(e));
+      }
+    });
+    btnStop.addEventListener('click', stopAll);
+
+    btnToggleRecognition.addEventListener('click', async () => {
+      if (recognitionTimer) {
+        clearInterval(recognitionTimer); recognitionTimer = null;
+        btnToggleRecognition.textContent = 'Start recognition';
+        statusPill.textContent = 'Idle';
+        return;
+      }
+      await recognizeOnce();
+      recognitionTimer = setInterval(recognizeOnce, 1100);
+      btnToggleRecognition.textContent = 'Stop recognition';
+    });
+
+    btnToggleTranscript.addEventListener('click', async () => {
+      if (transcriptTimer) {
+        clearInterval(transcriptTimer); transcriptTimer = null;
+        btnToggleTranscript.textContent = 'Start transcript';
+        return;
+      }
+      await transcribeOnce();
+      transcriptTimer = setInterval(transcribeOnce, 4200);
+      btnToggleTranscript.textContent = 'Stop transcript';
+    });
+
+    btnEnrollStart.addEventListener('click', async () => {
+      try { await enrollStart(); } catch (e) { alert(e.message || String(e)); }
+    });
+    btnEnrollCapture.addEventListener('click', async () => {
+      try { await enrollCapture(); } catch (e) { alert(e.message || String(e)); }
+    });
+    btnEnrollComplete.addEventListener('click', async () => {
+      try { await enrollComplete(); } catch (e) { alert(e.message || String(e)); }
+    });
+    btnEnrollCancel.addEventListener('click', async () => {
+      try { await enrollCancel(); } catch (e) { alert(e.message || String(e)); }
+    });
+
+    // Disable enrollment buttons until camera starts
+    setEnabled(btnStop, false);
+    setEnabled(btnToggleRecognition, false);
+    setEnabled(btnToggleTranscript, false);
+    setEnabled(btnEnrollStart, false);
+    setEnabled(btnEnrollCapture, false);
+    setEnabled(btnEnrollComplete, false);
+    setEnabled(btnEnrollCancel, false);
+  </script>
+</body>
+</html>
+

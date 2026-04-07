@@ -257,6 +257,96 @@
             background: #764ba2;
         }
 
+        .stack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .subcard {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .subcard h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .transcript-box {
+            background: #0b1020;
+            color: #e7e9ff;
+            border-radius: 10px;
+            padding: 14px;
+            min-height: 88px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.95em;
+            line-height: 1.35em;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            opacity: 0.75;
+            font-size: 0.9em;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9em;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        input, textarea {
+            width: 100%;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.95em;
+            outline: none;
+        }
+
+        textarea { min-height: 70px; resize: vertical; }
+
+        .btnbar {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #eef1ff; color: #2f3a7a; }
+        .btn-danger { background: #ffe8ea; color: #7a1f2a; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .pill {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #eef1ff;
+            color: #2f3a7a;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+
         @media (max-width: 968px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -278,13 +368,82 @@
                 <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Video Feed">
             </div>
 
-            <!-- Person Information Panel -->
-            <div class="card info-panel">
-                <h2>👤 Person Information</h2>
-                <div id="personInfo">
-                    <div class="no-person loading">
-                        <h3>Initializing...</h3>
-                        <p>Please wait while the system starts up</p>
+            <div class="stack">
+                <!-- Person Information Panel -->
+                <div class="card info-panel">
+                    <h2>👤 Person Information</h2>
+                    <div id="personInfo">
+                        <div class="no-person loading">
+                            <h3>Initializing...</h3>
+                            <p>Please wait while the system starts up</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transcript -->
+                <div class="subcard">
+                    <h3>🎙️ Live Transcript (server mic)</h3>
+                    <div class="muted" id="transcriptMeta">Listening…</div>
+                    <div class="transcript-box" id="transcriptText">…</div>
+                </div>
+
+                <!-- Enrollment -->
+                <div class="subcard">
+                    <h3>➕ Enroll New Person</h3>
+                    <div class="muted" style="margin-bottom: 10px;">
+                        This captures samples from the <strong>server camera</strong> while the person stands in front of it.
+                    </div>
+
+                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; margin-bottom: 10px;">
+                        <div class="pill" id="enrollPill">Idle</div>
+                        <div class="muted" id="enrollProgress">0/0</div>
+                    </div>
+
+                    <div class="row">
+                        <div>
+                            <label for="enrollName">Name *</label>
+                            <input id="enrollName" placeholder="e.g. Sarah Johnson" />
+                        </div>
+                        <div>
+                            <label for="enrollRelationship">Relationship</label>
+                            <input id="enrollRelationship" placeholder="e.g. Daughter, Nurse" />
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:10px;">
+                        <div>
+                            <label for="enrollPhone">Phone</label>
+                            <input id="enrollPhone" placeholder="e.g. 555-1234" />
+                        </div>
+                        <div>
+                            <label for="enrollEmail">Email</label>
+                            <input id="enrollEmail" placeholder="e.g. name@email.com" />
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <label for="enrollImportant">Important info</label>
+                        <textarea id="enrollImportant" placeholder="e.g. Brings medication on Tuesdays"></textarea>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <label for="enrollNotes">Notes</label>
+                        <textarea id="enrollNotes" placeholder="Any extra notes"></textarea>
+                    </div>
+
+                    <div class="row" style="margin-top:10px;">
+                        <div>
+                            <label for="enrollSamples">Samples (recommended 15–20)</label>
+                            <input id="enrollSamples" type="number" min="10" max="40" value="15" />
+                        </div>
+                        <div>
+                            <label>&nbsp;</label>
+                            <div class="btnbar" style="margin-top:0;">
+                                <button class="btn-primary" id="btnEnrollStart">Start capture</button>
+                                <button class="btn-secondary btn-disabled" id="btnEnrollSave">Save person</button>
+                                <button class="btn-danger" id="btnEnrollCancel">Cancel</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -292,6 +451,8 @@
     </div>
 
     <script>
+        const transcriptHistory = [];
+
         // Update person information every second
         function updatePersonInfo() {
             fetch('/api/current_person')
@@ -399,11 +560,130 @@
                 });
         }
 
+        function updateTranscript() {
+            fetch('/api/transcript')
+                .then(r => r.json())
+                .then(data => {
+                    const meta = document.getElementById('transcriptMeta');
+                    const box = document.getElementById('transcriptText');
+                    const text = (data.text || '').trim();
+
+                    if (!text) {
+                        meta.textContent = 'Listening… (no speech detected yet)';
+                        return;
+                    }
+
+                    const ts = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '';
+                    meta.textContent = ts ? `Last update: ${ts}` : 'Last update: just now';
+
+                    // Keep a small rolling history to make it feel "live"
+                    const last = transcriptHistory[transcriptHistory.length - 1];
+                    if (last !== text) {
+                        transcriptHistory.push(text);
+                        while (transcriptHistory.length > 6) transcriptHistory.shift();
+                    }
+                    box.textContent = transcriptHistory.join('\n');
+                })
+                .catch(err => console.error('Error fetching transcript:', err));
+        }
+
+        function setEnrollUI(state) {
+            const pill = document.getElementById('enrollPill');
+            const progress = document.getElementById('enrollProgress');
+            const btnSave = document.getElementById('btnEnrollSave');
+
+            if (!state.active) {
+                pill.textContent = 'Idle';
+                progress.textContent = '0/0';
+                btnSave.classList.add('btn-disabled');
+                btnSave.disabled = true;
+                return;
+            }
+
+            if (state.error) {
+                pill.textContent = 'Error';
+                progress.textContent = state.error;
+                btnSave.classList.add('btn-disabled');
+                btnSave.disabled = true;
+                return;
+            }
+
+            const captured = state.samples_captured || 0;
+            const target = state.target_samples || 0;
+            progress.textContent = `${captured}/${target}`;
+
+            if (state.ready) {
+                pill.textContent = 'Ready to save';
+                btnSave.classList.remove('btn-disabled');
+                btnSave.disabled = false;
+            } else {
+                pill.textContent = 'Capturing…';
+                btnSave.classList.add('btn-disabled');
+                btnSave.disabled = true;
+            }
+        }
+
+        function updateEnrollStatus() {
+            fetch('/api/enroll/status')
+                .then(r => r.json())
+                .then(setEnrollUI)
+                .catch(err => console.error('Error fetching enroll status:', err));
+        }
+
+        function startEnrollment() {
+            const payload = {
+                name: document.getElementById('enrollName').value,
+                relationship: document.getElementById('enrollRelationship').value,
+                phone: document.getElementById('enrollPhone').value,
+                email: document.getElementById('enrollEmail').value,
+                important_info: document.getElementById('enrollImportant').value,
+                notes: document.getElementById('enrollNotes').value,
+                samples: parseInt(document.getElementById('enrollSamples').value || '15', 10)
+            };
+
+            fetch('/api/enroll/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json().then(j => ({ ok: r.ok, json: j })))
+            .then(({ ok, json }) => {
+                if (!ok) throw new Error(json.error || 'Failed to start enrollment');
+                updateEnrollStatus();
+            })
+            .catch(err => alert(err.message));
+        }
+
+        function cancelEnrollment() {
+            fetch('/api/enroll/cancel', { method: 'POST' })
+                .then(() => updateEnrollStatus())
+                .catch(err => console.error('Error cancelling enrollment:', err));
+        }
+
+        function completeEnrollment() {
+            fetch('/api/enroll/complete', { method: 'POST' })
+                .then(r => r.json().then(j => ({ ok: r.ok, json: j })))
+                .then(({ ok, json }) => {
+                    if (!ok) throw new Error(json.error || 'Failed to save person');
+                    alert(`Enrolled successfully. Person ID: ${json.person_id}`);
+                    updateEnrollStatus();
+                })
+                .catch(err => alert(err.message));
+        }
+
+        document.getElementById('btnEnrollStart').addEventListener('click', startEnrollment);
+        document.getElementById('btnEnrollCancel').addEventListener('click', cancelEnrollment);
+        document.getElementById('btnEnrollSave').addEventListener('click', completeEnrollment);
+
         // Update every 1 second
         setInterval(updatePersonInfo, 1000);
+        setInterval(updateTranscript, 1200);
+        setInterval(updateEnrollStatus, 800);
 
         // Initial update
         updatePersonInfo();
+        updateTranscript();
+        updateEnrollStatus();
     </script>
 </body>
 </html>
