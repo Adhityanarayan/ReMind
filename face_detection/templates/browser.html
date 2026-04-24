@@ -470,7 +470,19 @@
     }
 
     async function enrollComplete() {
-      const res = await fetch('/api/enroll/complete', { method: 'POST' });
+      const meta = {
+        name: document.getElementById('enrollName').value,
+        relationship: document.getElementById('enrollRelationship').value,
+        phone: document.getElementById('enrollPhone').value,
+        email: document.getElementById('enrollEmail').value,
+        important_info: document.getElementById('enrollImportant').value,
+        notes: document.getElementById('enrollNotes').value,
+      };
+      const res = await fetch('/api/enroll/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(meta),
+      });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'failed to save');
       enrollPill.textContent = 'Saved';

@@ -47,18 +47,25 @@ transcript_state: Dict[str, Dict[str, Any]] = {}
 whisper_lock = threading.Lock()
 
 
-def init_system(db_path: str = "remind.db", whisper_model_name: str = "tiny") -> None:
-    global face_recognition, person_db, encounter_db, whisper_model
-    face_recognition = FaceRecognitionManager(db_path, tolerance=0.6)
-    person_db = PersonDatabase(db_path)
-    encounter_db = EncounterDatabase(db_path)
+def _whisper_device() -> str:
     try:
         import torch
 
         torch.set_num_threads(1)
+        if torch.cuda.is_available():
+            return "cuda"
     except ImportError:
         pass
-    whisper_model = whisper.load_model(whisper_model_name, device="cpu")
+    return "cpu"
+
+
+def init_system(db_path: str = "remind.db", whisper_model_name: str = "base") -> None:
+    global face_recognition, person_db, encounter_db, whisper_model
+    face_recognition = FaceRecognitionManager(db_path, tolerance=0.6)
+    person_db = PersonDatabase(db_path)
+    encounter_db = EncounterDatabase(db_path)
+    device = _whisper_device()
+    whisper_model = whisper.load_model(whisper_model_name, device=device)
 
 
 def _get_client_id() -> Tuple[str, bool]:
@@ -95,6 +102,26 @@ def _person_for_api(person: Dict[str, Any]) -> Dict[str, Any]:
             out[key] = float(val)
         elif isinstance(val, np.integer):
             out[key] = int(val)
+        else:
+            out[key] = val
+    return out
+
+
+_ENROLL_META_KEYS = ("name", "relationship", "phone", "email", "important_info", "notes")
+
+
+def _merge_enroll_meta(current: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply form updates on top of session meta (fixes name filled after /enroll/start or via UI only)."""
+    out = dict(current)
+    for key in _ENROLL_META_KEYS:
+        if key not in updates:
+            continue
+        val = updates[key]
+        if val is None:
+            out[key] = None
+        elif isinstance(val, str):
+            s = val.strip()
+            out[key] = s if s else None
         else:
             out[key] = val
     return out
@@ -360,11 +387,24 @@ def enroll_complete():
     if len(frames) < 10:
         return jsonify({"success": False, "error": "need at least 10 samples"}), 400
 
-    meta = st.get("meta") or {}
-    if not (meta.get("name") or "").strip():
+    # Merge latest form fields from the client (name often filled after /enroll/start or only in DOM after speech)
+    payload = request.get_json(silent=True) or {}
+    meta = _merge_enroll_meta(st.get("meta") or {}, payload)
+    st["meta"] = meta
+
+    name = (meta.get("name") or "").strip()
+    if not name:
         return jsonify({"success": False, "error": "name is required (say 'my name is ...' or type it)"}), 400
     try:
-        person_id = face_recognition.enroll_person(frames=frames, **meta)
+        person_id = face_recognition.enroll_person(
+            frames=frames,
+            name=name,
+            relationship=meta.get("relationship") or None,
+            phone=meta.get("phone") or None,
+            email=meta.get("email") or None,
+            important_info=meta.get("important_info") or None,
+            notes=meta.get("notes") or None,
+        )
     except Exception as e:
         st["error"] = str(e)
         return jsonify({"success": False, "error": str(e)}), 500
@@ -373,10 +413,11 @@ def enroll_complete():
     return jsonify({"success": True, "person_id": person_id})
 
 
-def run(host: str = "0.0.0.0", port: int = 5002, db_path: str = "remind.db", model: str = "tiny") -> None:
+def run(host: str = "0.0.0.0", port: int = 5002, db_path: str = "remind.db", model: str = "base") -> None:
     init_system(db_path=db_path, whisper_model_name=model)
     print(f"\n🌐 Starting ReMind Browser Web App on http://{host}:{port}")
     print("   This uses browser camera+mic (getUserMedia).")
+    print(f"   Whisper model: {model} (set REMIND_WHISPER_MODEL or --model to change; larger = better quality, slower)")
     app.run(host=host, port=port, debug=False, threaded=True)
 
 
@@ -387,7 +428,13 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=5002)
     parser.add_argument("--db", default="remind.db")
-    parser.add_argument("--model", default="tiny", choices=["tiny", "base", "small"])
+    whisper_choices = ["tiny", "base", "small", "medium", "large"]
+    parser.add_argument(
+        "--model",
+        default=os.environ.get("REMIND_WHISPER_MODEL", "base"),
+        choices=whisper_choices,
+        help="Whisper size: tiny fastest/worst; base/small good balance; medium/large best if you have RAM/GPU",
+    )
     args = parser.parse_args()
 
     run(args.host, args.port, args.db, args.model)
